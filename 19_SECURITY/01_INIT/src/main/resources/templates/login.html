@@ -18,5 +18,7 @@
     <!--        <input name="_csrf"  th:value="${_csrf.token}">-->
     <button type="submit" class="primary">Sign in</button>
 </form>
+
+<span th:text="${param.error}"></span>
 </body>
 </html>

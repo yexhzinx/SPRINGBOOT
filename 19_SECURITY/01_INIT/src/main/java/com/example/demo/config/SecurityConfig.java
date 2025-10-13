@@ -1,5 +1,11 @@
 package com.example.demo.config;
 
+import com.example.demo.config.auth.exceptionHandler.CustomAccessDeniedHandler;
+import com.example.demo.config.auth.exceptionHandler.CustomAuthenticationEntryPoint;
+import com.example.demo.config.auth.loginHandler.CustomFailureHandler;
+import com.example.demo.config.auth.loginHandler.CustomSuccessHandler;
+import com.example.demo.config.auth.logoutHandler.CustomLogoutHandler;
+import com.example.demo.config.auth.logoutHandler.CustomLogoutSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,8 +32,8 @@ public class SecurityConfig  {
         //권한처리
         http.authorizeHttpRequests((auth)->{
 
-            auth.requestMatchers("/login","/logout","/join").permitAll();
-            auth.requestMatchers("/").permitAll(); //
+            auth.requestMatchers("/","/join","/login").permitAll();
+
             auth.requestMatchers("/user").hasAnyRole("USER"); //
             auth.requestMatchers("/manager").hasAnyRole("MANAGER"); //
             auth.requestMatchers("/admin").hasAnyRole("ADMIN"); //
@@ -40,14 +46,23 @@ public class SecurityConfig  {
         http.formLogin( (login)->{
             login.permitAll();
             login.loginPage("/login");
+            login.successHandler(new CustomSuccessHandler());     //로그인 성공시 동작하는 핸들러
+            login.failureHandler(new CustomFailureHandler());     //로그인 실패시(ID 미존재 , PW 불일치)
         });
 
         //로그아웃(설정시 POST처리)
         http.logout( (logout)->{
             logout.permitAll();
+            logout.addLogoutHandler(new CustomLogoutHandler());      //로그아웃 처리 핸들러
+            logout.logoutSuccessHandler(new CustomLogoutSuccessHandler());
         } );
 
         //예외처리
+        http.exceptionHandling((ex)->{
+            ex.authenticationEntryPoint(new CustomAuthenticationEntryPoint());//미인증된 상태 + 권한이 필요한 Endpoint 접근시 예외처리
+            ex.accessDeniedHandler(new CustomAccessDeniedHandler()); //인증이후 권한이 부족할때
+        });
+
         //Etc..
         return http.build();
     }

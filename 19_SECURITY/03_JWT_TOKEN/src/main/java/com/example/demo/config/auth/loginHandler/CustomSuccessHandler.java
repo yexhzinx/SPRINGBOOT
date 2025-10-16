@@ -1,8 +1,11 @@
 package com.example.demo.config.auth.loginHandler;
 
+import com.example.demo.config.auth.PrincipalDetails;
 import com.example.demo.config.auth.jwt.JWTProperties;
 import com.example.demo.config.auth.jwt.JWTTokenProvider;
 import com.example.demo.config.auth.jwt.TokenInfo;
+import com.example.demo.domain.entity.JwtToken;
+import com.example.demo.domain.repository.JwtTokenRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +18,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -23,6 +27,9 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
 
     @Autowired
     JWTTokenProvider jwtTokenProvider;
+
+    @Autowired
+    JwtTokenRepository jwtTokenRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -33,6 +40,18 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
         cookie.setMaxAge(JWTProperties.ACCESS_TOKEN_EXPIRATION_TIME);    //accesstoken 유지시간
         cookie.setPath("/");    //쿠키 적용경로(/ : 모든경로)
         response.addCookie(cookie); //응답정보에 쿠키 포함
+
+        //TOKEN 을 DB로 저장
+        PrincipalDetails principalDetails = (PrincipalDetails)authentication.getPrincipal();
+        String auth = principalDetails.getDto().getRole();
+        JwtToken tokenEntity = JwtToken.builder()
+                .accessToken(tokenInfo.getAccessToken())
+                .refreshToken(tokenInfo.getRefreshToken())
+                .username(authentication.getName())
+                .auth(auth)
+                .createAt(LocalDateTime.now())
+                .build();
+        jwtTokenRepository.save(tokenEntity);
 
 
         log.info("CustomSuccessHandler's onAuthenticationSuccess invoke...genToken.."+tokenInfo);

@@ -1,20 +1,34 @@
 package com.example.demo.config.auth.jwt;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.example.demo.config.auth.PrincipalDetails;
+import com.example.demo.domain.dtos.UserDto;
+import com.example.demo.domain.entity.User;
+import com.example.demo.domain.repository.UserRepository;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class JWTTokenProvider {
+
+    @Autowired
+    private UserRepository userRepository;
+
     //Key
     private Key key ;
 
@@ -57,5 +71,64 @@ public class JWTTokenProvider {
                 .refreshToken(refreshToken)
                 .build();
     }
+
+    public Authentication getAuthentication(String accessToken) throws ExpiredJwtException
+    {
+        Claims claims = Jwts.parser().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+
+        String username = claims.getSubject(); // username
+        username = (String)claims.get("username"); //username
+        String auth = (String)claims.get("auth"); //"ROLE_USER,ROLE_ADMIN"
+
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+        String roles [] = auth.split(","); //["ROLE_ADMIN","ROLE_USER"]
+        for(String role : roles){
+            authorities.add(new SimpleGrantedAuthority(role));
+        }
+
+
+        PrincipalDetails principalDetails = null;
+        UserDto dto = null;
+        if(userRepository.existsById(username)){
+
+            dto = new UserDto();
+            dto.setUsername(username);
+            dto.setRole(auth);
+            dto.setPassword(null);
+
+            principalDetails = new PrincipalDetails(dto);
+        }
+
+        if(principalDetails!=null) {
+            UsernamePasswordAuthenticationToken authenticationToken =
+                    new UsernamePasswordAuthenticationToken(principalDetails, null, authorities);
+            return authenticationToken;
+        }
+
+        return null;
+
+
+    }
+
+    public boolean validateToken(String token) throws Exception
+    {
+        boolean isValid = false;
+        try {
+            Jwts.parser().setSigningKey(key).build().parseClaimsJws(token);
+            isValid = true;
+        }catch(ExpiredJwtException e) {
+            // 토큰 만료시 예외
+            log.info("[ExpiredJwtException].." + e.getMessage());
+            throw new ExpiredJwtException(null,null,null); //header,claims,message
+        }
+        return isValid;
+
+        // SecurityException	서명 불일치	변조된 토큰 또는 잘못된 키
+        // MalformedJwtException 형식 오류	JWT 구조(header.payload.signature) 깨짐
+        // ExpiredJwtException	만료된 토큰	exp 클레임이 현재 시간 이전
+        // UnsupportedJwtException	지원되지 않는 형식	비표준 JWT, 미지원 알고리즘
+        // IllegalArgumentException	잘못된 입력	null 또는 빈 토큰
+    }
+
 
 }

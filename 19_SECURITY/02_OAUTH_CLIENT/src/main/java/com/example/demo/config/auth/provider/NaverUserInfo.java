@@ -5,44 +5,44 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class KakaoUserInfo implements OAuth2UserInfo{
-    //카카오 전용 속성
-    private Long id;
-    private LocalDateTime connected_at;
-    private Map<String,Object> properties;
-    private Map<String,Object> kakao_account;
+public class NaverUserInfo implements OAuth2UserInfo {
+//    private String id;
+//    private String profile_image;
+//    private String email;
+//    private String name;
 
-    //내용추출위한 공통화된 함수
+    private Map<String,Object> response;
+
     @Override
     public String getName() {
-        return (String)properties.get("nickname");
+        return (String)response.get("name");
     }
 
     @Override
     public String getEmail() {
-        return (String)kakao_account.get("email");
+        return (String)response.get("email");
     }
 
     @Override
     public String getProvider() {
-        return "Kakao";
+        return "Naver";
     }
 
     @Override
     public String getProviderId() {
-        return id!=null ? id.toString() : "0";
+        return (String)response.get("id");
     }
 
     @Override
     public Map<String, Object> getAttributes() {
-        return kakao_account;
+        return response;
     }
 }

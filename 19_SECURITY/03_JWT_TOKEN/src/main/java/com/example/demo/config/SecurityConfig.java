@@ -2,6 +2,7 @@ package com.example.demo.config;
 
 import com.example.demo.config.auth.exceptionHandler.CustomAccessDeniedHandler;
 import com.example.demo.config.auth.exceptionHandler.CustomAuthenticationEntryPoint;
+import com.example.demo.config.auth.jwt.JWTAuthorizationFilter;
 import com.example.demo.config.auth.loginHandler.CustomFailureHandler;
 import com.example.demo.config.auth.loginHandler.CustomSuccessHandler;
 import com.example.demo.config.auth.logoutHandler.CustomLogoutHandler;
@@ -11,9 +12,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -32,6 +35,8 @@ public class SecurityConfig  {
     @Autowired
     CustomLogoutHandler customLogoutHandler;
 
+    @Autowired
+    JWTAuthorizationFilter jwtAuthorizationFilter;
 
 
     @Bean
@@ -80,6 +85,13 @@ public class SecurityConfig  {
             oauth2.loginPage("/login");
 
         });
+        //SESSION 비활성화
+        http.sessionManagement((sessionConfig)->{
+            sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        });
+
+        //TokenFilter 추가
+        http.addFilterBefore(jwtAuthorizationFilter, LogoutFilter.class );
 
         //Etc..
         return http.build();

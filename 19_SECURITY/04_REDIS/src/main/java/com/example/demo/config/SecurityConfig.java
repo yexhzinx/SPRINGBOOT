@@ -83,8 +83,8 @@ public class SecurityConfig  {
         //Oauth2-Client 활성화
         http.oauth2Login((oauth2)->{
             oauth2.loginPage("/login");
-
         });
+
         //SESSION 비활성화
         http.sessionManagement((sessionConfig)->{
             sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS);

@@ -4,6 +4,7 @@ import com.example.demo.config.auth.PrincipalDetails;
 import com.example.demo.config.auth.jwt.JWTProperties;
 import com.example.demo.config.auth.jwt.JWTTokenProvider;
 import com.example.demo.config.auth.jwt.TokenInfo;
+import com.example.demo.config.auth.redis.RedisUtil;
 import com.example.demo.domain.entity.JwtToken;
 import com.example.demo.domain.repository.JwtTokenRepository;
 import jakarta.servlet.ServletException;
@@ -31,6 +32,9 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
     @Autowired
     JwtTokenRepository jwtTokenRepository;
 
+    @Autowired
+    RedisUtil redisUtil;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
@@ -53,6 +57,8 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
                 .build();
         jwtTokenRepository.save(tokenEntity);
 
+        //REDIS에 REFRESHTOKEN 저장
+        redisUtil.setDataExpire("RT:"+authentication.getName(),tokenInfo.getRefreshToken(),JWTProperties.REFRESH_TOKEN_EXPIRATION_TIME);
 
         log.info("CustomSuccessHandler's onAuthenticationSuccess invoke...genToken.."+tokenInfo);
 
